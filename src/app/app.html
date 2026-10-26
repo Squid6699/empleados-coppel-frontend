@@ -10,8 +10,8 @@
     </button>
   </header>
 
-  @if (errorMessage) {
-    <div class="alert" role="alert">{{ errorMessage }}</div>
+  @if (errorMessage()) {
+    <div class="alert" role="alert">{{ errorMessage() }}</div>
   }
 
   <section class="workspace">
@@ -20,19 +20,19 @@
         <p class="eyebrow">Directorio</p>
         <h2>Empleados registrados</h2>
       </div>
-      <span class="count">{{ employees.length }} Empleados</span>
+      <span class="count">{{ employees().length }} Empleados</span>
     </div>
 
-    @if (isLoading) {
+    @if (isLoading()) {
       <div class="empty-state"><span class="loader"></span> Cargando empleados...</div>
-    } @else if (employees.length === 0) {
+    } @else if (employees().length === 0) {
       <div class="empty-state">
         <strong>Aún no hay empleados</strong>
         <span>Registra el primero para comenzar.</span>
       </div>
     } @else {
       <div class="employee-grid">
-        @for (employee of employees; track employee.id) {
+        @for (employee of employees(); track employee.id) {
           <article class="employee-card">
             <div class="card-top">
               <div class="avatar">{{ initials(employee) }}</div>
@@ -65,13 +65,13 @@
     }
   </section>
 
-  @if (isFormVisible) {
+  @if (isFormVisible()) {
     <div class="modal-backdrop" (click)="closeForm()">
       <section class="modal" role="dialog" aria-modal="true" aria-labelledby="form-title" (click)="$event.stopPropagation()">
         <div class="modal-heading">
           <div>
-            <p class="eyebrow">{{ editingId ? 'Actualizar registro' : 'Nuevo registro' }}</p>
-            <h2 id="form-title">{{ editingId ? 'Editar empleado' : 'Registrar empleado' }}</h2>
+            <p class="eyebrow">{{ editingId() ? 'Actualizar registro' : 'Nuevo registro' }}</p>
+            <h2 id="form-title">{{ editingId() ? 'Editar empleado' : 'Registrar empleado' }}</h2>
           </div>
           <button class="close-button" type="button" (click)="closeForm()" aria-label="Cerrar">×</button>
         </div>
@@ -85,8 +85,8 @@
           </div>
           <div class="modal-actions">
             <button class="button button-secondary" type="button" (click)="closeForm()">Cancelar</button>
-            <button class="button button-primary" type="submit" [disabled]="employeeForm.invalid || isSaving">
-              {{ isSaving ? 'Guardando...' : (editingId ? 'Guardar cambios' : 'Registrar empleado') }}
+            <button class="button button-primary" type="submit" [disabled]="employeeForm.invalid || isSaving()">
+              {{ isSaving() ? 'Guardando...' : (editingId() ? 'Guardar cambios' : 'Registrar empleado') }}
             </button>
           </div>
         </form>

@@ -1,5 +1,5 @@
 import { CurrencyPipe, DatePipe } from '@angular/common';
-import { ChangeDetectorRef, Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { catchError, finalize, of } from 'rxjs';
 import { Employee, EmployeePayload } from './models/employee.model';
@@ -21,49 +21,41 @@ interface EmployeeForm {
 })
 export class App implements OnInit {
   private readonly employeeService = inject(EmployeeService);
-  private readonly changeDetector = inject(ChangeDetectorRef);
 
-  employees: Employee[] = [];
+  readonly employees = signal<Employee[]>([]);
+  readonly editingId = signal<number | null>(null);
+  readonly isFormVisible = signal(false);
+  readonly isLoading = signal(false);
+  readonly isSaving = signal(false);
+  readonly errorMessage = signal('');
+
   form: EmployeeForm = this.emptyForm();
-  editingId: number | null = null;
-  isFormVisible = false;
-  isLoading = false;
-  isSaving = false;
-  errorMessage = '';
 
   ngOnInit(): void {
     this.loadEmployees();
   }
 
   loadEmployees(): void {
-    this.isLoading = true;
-    this.errorMessage = '';
+    this.isLoading.set(true);
+    this.errorMessage.set('');
     this.employeeService.list().pipe(
       catchError(() => {
-        this.errorMessage = 'No se pudo cargar la información. Verifica que el backend esté disponible.';
+        this.errorMessage.set('No se pudo cargar la información. Verifica que el backend esté disponible.');
         return of([]);
       }),
-      finalize(() => {
-        this.isLoading = false;
-        this.changeDetector.detectChanges();
-      }),
-    ).subscribe({
-      next: (employees) => {
-        this.employees = employees;
-        this.changeDetector.detectChanges();
-      },
-    });
+      finalize(() => this.isLoading.set(false)),
+    ).subscribe((employees) => this.employees.set(employees));
   }
 
   startCreating(): void {
-    this.editingId = null;
+    this.editingId.set(null);
     this.form = this.emptyForm();
-    this.errorMessage = '';
-    this.isFormVisible = true;
+    this.errorMessage.set('');
+    this.isFormVisible.set(true);
   }
 
   startEditing(employee: Employee): void {
-    this.editingId = employee.id;
+    this.editingId.set(employee.id);
     this.form = {
       nombre: employee.nombre,
       apellidoPaterno: employee.apellido_paterno,
@@ -71,17 +63,17 @@ export class App implements OnInit {
       sueldoBaseMensual: employee.sueldo_base_mensual,
       fechaIngreso: employee.fecha_ingreso,
     };
-    this.errorMessage = '';
-    this.isFormVisible = true;
+    this.errorMessage.set('');
+    this.isFormVisible.set(true);
   }
 
   closeForm(): void {
-    if (!this.isSaving) this.isFormVisible = false;
+    if (!this.isSaving()) this.isFormVisible.set(false);
   }
 
   save(): void {
-    this.isSaving = true;
-    this.errorMessage = '';
+    this.isSaving.set(true);
+    this.errorMessage.set('');
     const payload: EmployeePayload = {
       nombre: this.form.nombre,
       apellido_paterno: this.form.apellidoPaterno,
@@ -89,18 +81,19 @@ export class App implements OnInit {
       sueldo_base_mensual: this.form.sueldoBaseMensual,
       fecha_ingreso: this.form.fechaIngreso,
     };
-    const operation = this.editingId !== null
-      ? this.employeeService.update(this.editingId, payload)
+    const editingId = this.editingId();
+    const operation = editingId !== null
+      ? this.employeeService.update(editingId, payload)
       : this.employeeService.create(payload);
     operation.subscribe({
       next: () => {
-        this.isSaving = false;
-        this.isFormVisible = false;
+        this.isSaving.set(false);
+        this.isFormVisible.set(false);
         this.loadEmployees();
       },
       error: () => {
-        this.isSaving = false;
-        this.errorMessage = 'No se pudo guardar el empleado. Revisa los datos e inténtalo de nuevo.';
+        this.isSaving.set(false);
+        this.errorMessage.set('No se pudo guardar el empleado. Revisa los datos e inténtalo de nuevo.');
       },
     });
   }
@@ -109,7 +102,7 @@ export class App implements OnInit {
     if (!confirm(`¿Eliminar a ${this.fullName(employee)}?`)) return;
     this.employeeService.remove(employee.id).subscribe({
       next: () => this.loadEmployees(),
-      error: () => this.errorMessage = 'No se pudo eliminar el empleado.',
+      error: () => this.errorMessage.set('No se pudo eliminar el empleado.'),
     });
   }
 
