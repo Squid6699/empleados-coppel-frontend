@@ -27,7 +27,6 @@ export class App implements OnInit {
   readonly isFormVisible = signal(false);
   readonly isLoading = signal(false);
   readonly isSaving = signal(false);
-  readonly errorMessage = signal('');
 
   form: EmployeeForm = this.emptyForm();
 
@@ -37,10 +36,9 @@ export class App implements OnInit {
 
   loadEmployees(): void {
     this.isLoading.set(true);
-    this.errorMessage.set('');
     this.employeeService.list().pipe(
       catchError(() => {
-        this.errorMessage.set('No se pudo cargar la información. Verifica que el backend esté disponible.');
+        alert('No se pudo cargar la información. Verifica que el backend esté disponible.');
         return of([]);
       }),
       finalize(() => this.isLoading.set(false)),
@@ -50,7 +48,6 @@ export class App implements OnInit {
   startCreating(): void {
     this.editingId.set(null);
     this.form = this.emptyForm();
-    this.errorMessage.set('');
     this.isFormVisible.set(true);
   }
 
@@ -63,7 +60,6 @@ export class App implements OnInit {
       sueldoBaseMensual: employee.sueldo_base_mensual,
       fechaIngreso: employee.fecha_ingreso,
     };
-    this.errorMessage.set('');
     this.isFormVisible.set(true);
   }
 
@@ -73,7 +69,6 @@ export class App implements OnInit {
 
   save(): void {
     this.isSaving.set(true);
-    this.errorMessage.set('');
     const payload: EmployeePayload = {
       nombre: this.form.nombre,
       apellido_paterno: this.form.apellidoPaterno,
@@ -93,7 +88,7 @@ export class App implements OnInit {
       },
       error: () => {
         this.isSaving.set(false);
-        this.errorMessage.set('No se pudo guardar el empleado. Revisa los datos e inténtalo de nuevo.');
+        alert('No se pudo guardar el empleado. Revisa los datos e inténtalo de nuevo.');
       },
     });
   }
@@ -102,7 +97,7 @@ export class App implements OnInit {
     if (!confirm(`¿Eliminar a ${this.fullName(employee)}?`)) return;
     this.employeeService.remove(employee.id).subscribe({
       next: () => this.loadEmployees(),
-      error: () => this.errorMessage.set('No se pudo eliminar el empleado.'),
+      error: () => alert('No se pudo eliminar el empleado.'),
     });
   }
 

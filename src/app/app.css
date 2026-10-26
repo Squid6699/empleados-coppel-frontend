@@ -17,7 +17,6 @@ h3 { color: #102a43; font-size: 1.05rem; margin-bottom: 4px; }
 .button-primary { background: #e3654b; color: white; }
 .button-primary span { font-size: 1.25rem; line-height: 0; margin-right: 5px; vertical-align: -1px; }
 .button-secondary { background: #eef2f6; color: #334e68; }
-.alert { background: #fff1f0; border: 1px solid #ffc9c3; border-radius: 10px; color: #b42318; margin-bottom: 24px; padding: 13px 16px; }
 .section-heading { align-items: center; display: flex; justify-content: space-between; margin-bottom: 18px; }
 .count { background: #e9f1f8; border-radius: 20px; color: #486581; font-size: .78rem; font-weight: 700; padding: 7px 12px; }
 .employee-grid { display: grid; gap: 18px; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); }
