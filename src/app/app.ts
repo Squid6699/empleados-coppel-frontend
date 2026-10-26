@@ -1,35 +1,9 @@
 import { CurrencyPipe, DatePipe } from '@angular/common';
-import { HttpClient } from '@angular/common/http';
 import { ChangeDetectorRef, Component, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { catchError, finalize, map, of, timeout } from 'rxjs';
-
-interface ApiEmployee {
-  id: number;
-  nombre: string;
-  apellido_paterno?: string;
-  apellidoPaterno?: string;
-  apellido_materno?: string;
-  apellidoMaterno?: string;
-  sueldo_base_mensual?: number;
-  sueldoBaseMensual?: number;
-  fecha_ingreso?: string;
-  fechaIngreso?: string;
-  dias_vacaciones?: number;
-  diasVacaciones?: number;
-  aguinaldo?: number;
-}
-
-interface Employee {
-  id: number;
-  nombre: string;
-  apellido_paterno: string;
-  apellido_materno?: string;
-  sueldo_base_mensual: number;
-  fecha_ingreso: string;
-  dias_vacaciones: number;
-  aguinaldo: number;
-}
+import { catchError, finalize, of } from 'rxjs';
+import { Employee, EmployeePayload } from './models/employee.model';
+import { EmployeeService } from './services/employee.service';
 
 interface EmployeeForm {
   nombre: string;
@@ -46,9 +20,8 @@ interface EmployeeForm {
   templateUrl: './app.html',
 })
 export class App implements OnInit {
-  private readonly http = inject(HttpClient);
+  private readonly employeeService = inject(EmployeeService);
   private readonly changeDetector = inject(ChangeDetectorRef);
-  private readonly apiUrl = 'http://localhost:8080/api/empleados';
 
   employees: Employee[] = [];
   form: EmployeeForm = this.emptyForm();
@@ -65,23 +38,7 @@ export class App implements OnInit {
   loadEmployees(): void {
     this.isLoading = true;
     this.errorMessage = '';
-    this.http.get<ApiEmployee[] | { empleados?: ApiEmployee[]; employees?: ApiEmployee[] }>(this.apiUrl).pipe(
-      timeout(10000),
-      map((response) => {
-        const apiEmployees = Array.isArray(response)
-          ? response
-          : response.empleados ?? response.employees ?? [];
-        return apiEmployees.map((employee) => ({
-          id: employee.id,
-          nombre: employee.nombre,
-          apellido_paterno: employee.apellido_paterno ?? employee.apellidoPaterno ?? '',
-          apellido_materno: employee.apellido_materno ?? employee.apellidoMaterno,
-          sueldo_base_mensual: employee.sueldo_base_mensual ?? employee.sueldoBaseMensual ?? 0,
-          fecha_ingreso: employee.fecha_ingreso ?? employee.fechaIngreso ?? '',
-          dias_vacaciones: employee.dias_vacaciones ?? employee.diasVacaciones ?? 0,
-          aguinaldo: employee.aguinaldo ?? 0,
-        }));
-      }),
+    this.employeeService.list().pipe(
       catchError(() => {
         this.errorMessage = 'No se pudo cargar la información. Verifica que el backend esté disponible.';
         return of([]);
@@ -125,16 +82,16 @@ export class App implements OnInit {
   save(): void {
     this.isSaving = true;
     this.errorMessage = '';
-    const request = {
+    const payload: EmployeePayload = {
       nombre: this.form.nombre,
       apellido_paterno: this.form.apellidoPaterno,
       apellido_materno: this.form.apellidoMaterno || null,
       sueldo_base_mensual: this.form.sueldoBaseMensual,
       fecha_ingreso: this.form.fechaIngreso,
     };
-    const operation = this.editingId
-      ? this.http.put(`${this.apiUrl}/${this.editingId}`, request)
-      : this.http.post(this.apiUrl, request);
+    const operation = this.editingId !== null
+      ? this.employeeService.update(this.editingId, payload)
+      : this.employeeService.create(payload);
     operation.subscribe({
       next: () => {
         this.isSaving = false;
@@ -150,7 +107,7 @@ export class App implements OnInit {
 
   remove(employee: Employee): void {
     if (!confirm(`¿Eliminar a ${this.fullName(employee)}?`)) return;
-    this.http.delete(`${this.apiUrl}/${employee.id}`).subscribe({
+    this.employeeService.remove(employee.id).subscribe({
       next: () => this.loadEmployees(),
       error: () => this.errorMessage = 'No se pudo eliminar el empleado.',
     });

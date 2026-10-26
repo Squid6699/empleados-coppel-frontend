@@ -56,7 +56,7 @@
               </div>
               <div class="benefit bonus">
                 <span class="benefit-icon">✦</span>
-                <div><span>Aguinaldo estimado</span><strong>{{ employee.aguinaldo | currency:'MXN':'symbol':'1.0-0' }}</strong></div>
+                <div><span>Aguinaldo estimado</span><strong>{{ (employee.aguinaldo ?? 0) | currency:'MXN':'symbol':'1.0-0' }}</strong></div>
               </div>
             </div>
           </article>
