@@ -1,20 +1,33 @@
 import { CurrencyPipe, DatePipe } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
-import { Component, OnInit, inject } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { forkJoin, map, switchMap } from 'rxjs';
+import { catchError, finalize, map, of, timeout } from 'rxjs';
 
 interface ApiEmployee {
+  id: number;
+  nombre: string;
+  apellido_paterno?: string;
+  apellidoPaterno?: string;
+  apellido_materno?: string;
+  apellidoMaterno?: string;
+  sueldo_base_mensual?: number;
+  sueldoBaseMensual?: number;
+  fecha_ingreso?: string;
+  fechaIngreso?: string;
+  dias_vacaciones?: number;
+  diasVacaciones?: number;
+  aguinaldo?: number;
+}
+
+interface Employee {
   id: number;
   nombre: string;
   apellido_paterno: string;
   apellido_materno?: string;
   sueldo_base_mensual: number;
   fecha_ingreso: string;
-}
-
-interface Employee extends ApiEmployee {
-  diasVacaciones: number;
+  dias_vacaciones: number;
   aguinaldo: number;
 }
 
@@ -34,6 +47,7 @@ interface EmployeeForm {
 })
 export class App implements OnInit {
   private readonly http = inject(HttpClient);
+  private readonly changeDetector = inject(ChangeDetectorRef);
   private readonly apiUrl = 'http://localhost:8080/api/empleados';
 
   employees: Employee[] = [];
@@ -51,27 +65,35 @@ export class App implements OnInit {
   loadEmployees(): void {
     this.isLoading = true;
     this.errorMessage = '';
-    this.http.get<ApiEmployee[]>(this.apiUrl).pipe(
-      switchMap((employees) => employees.length
-        ? forkJoin(employees.map((employee) => forkJoin({
-            vacation: this.http.get<{ diasVacaciones?: number; dias_vacaciones?: number }>(`${this.apiUrl}/${employee.id}/vacaciones`),
-            bonus: this.http.get<{ aguinaldo: number }>(`${this.apiUrl}/${employee.id}/aguinaldo`),
-          }).pipe(
-            map(({ vacation, bonus }) => ({
-              ...employee,
-              diasVacaciones: vacation.diasVacaciones ?? vacation.dias_vacaciones ?? 0,
-              aguinaldo: bonus.aguinaldo,
-            }))
-          )))
-        : [[]]),
+    this.http.get<ApiEmployee[] | { empleados?: ApiEmployee[]; employees?: ApiEmployee[] }>(this.apiUrl).pipe(
+      timeout(10000),
+      map((response) => {
+        const apiEmployees = Array.isArray(response)
+          ? response
+          : response.empleados ?? response.employees ?? [];
+        return apiEmployees.map((employee) => ({
+          id: employee.id,
+          nombre: employee.nombre,
+          apellido_paterno: employee.apellido_paterno ?? employee.apellidoPaterno ?? '',
+          apellido_materno: employee.apellido_materno ?? employee.apellidoMaterno,
+          sueldo_base_mensual: employee.sueldo_base_mensual ?? employee.sueldoBaseMensual ?? 0,
+          fecha_ingreso: employee.fecha_ingreso ?? employee.fechaIngreso ?? '',
+          dias_vacaciones: employee.dias_vacaciones ?? employee.diasVacaciones ?? 0,
+          aguinaldo: employee.aguinaldo ?? 0,
+        }));
+      }),
+      catchError(() => {
+        this.errorMessage = 'No se pudo cargar la información. Verifica que el backend esté disponible.';
+        return of([]);
+      }),
+      finalize(() => {
+        this.isLoading = false;
+        this.changeDetector.detectChanges();
+      }),
     ).subscribe({
       next: (employees) => {
-        this.employees = employees as Employee[];
-        this.isLoading = false;
-      },
-      error: () => {
-        this.errorMessage = 'No se pudo cargar la información. Verifica que el backend esté disponible.';
-        this.isLoading = false;
+        this.employees = employees;
+        this.changeDetector.detectChanges();
       },
     });
   }
