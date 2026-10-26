@@ -7,23 +7,21 @@ import { Employee, EmployeePayload } from '../models/employee.model';
 export class EmployeeService {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = 'http://localhost:8080/api/empleados';
-  private readonly requestTimeout = 10000;
 
   list(): Observable<Employee[]> {
-    return this.http.get<Employee[]>(this.baseUrl).pipe(timeout(this.requestTimeout));
+    return this.http.get<Employee[]>(this.baseUrl);
   }
 
   create(payload: EmployeePayload): Observable<Employee> {
-    return this.http.post<Employee>(this.baseUrl, payload).pipe(timeout(this.requestTimeout));
+    return this.http.post<Employee>(this.baseUrl, payload);
   }
 
   update(id: number, payload: EmployeePayload): Observable<Employee> {
     return this.http
-      .put<Employee>(`${this.baseUrl}/${id}`, payload)
-      .pipe(timeout(this.requestTimeout));
+      .put<Employee>(`${this.baseUrl}/${id}`, payload);
   }
 
   remove(id: number): Observable<void> {
-    return this.http.delete<void>(`${this.baseUrl}/${id}`).pipe(timeout(this.requestTimeout));
+    return this.http.delete<void>(`${this.baseUrl}/${id}`);
   }
 }
