@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import { Observable, timeout } from 'rxjs';
+import { Observable } from 'rxjs';
 import { Employee, EmployeePayload } from '../models/employee.model';
 
 @Injectable({ providedIn: 'root' })
